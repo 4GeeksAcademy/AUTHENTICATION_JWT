@@ -5,6 +5,8 @@ from flask import Flask, request, jsonify, Blueprint
 from api.models import db, User
 from api.utils import generate_sitemap, APIException
 from flask_jwt_extended import create_access_token, JWTManager
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import timedelta
 
 
 api = Blueprint('api', __name__)
@@ -54,6 +56,12 @@ def create_token():
     user = User.query.filter_by(username=username, password=password).first()
     if user is None:
         return jsonify({"msg": "Wrong credentials"}), 401
-
-    access_token = create_access_token(identity=user.id)
+    expires = timedelta(minutes=2)
+    access_token = create_access_token(identity=user.id, expires_delta=expires)
     return jsonify({"token": access_token, "user_id": user.id})
+
+@api.route('/validate-token', methods=['GET'])
+@jwt_required()
+def validate_token():
+    current_user = get_jwt_identity()
+    return jsonify({"msg": "Token is valid", "user_id": current_user}), 200
